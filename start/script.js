@@ -1,3 +1,18 @@
+import{calculateBMI,getJudgement} from"./functions.js";
+
+
+// 履歴一覧を描画する関数
+// DOM操作をしている関数は分けない！
+function renderHistory(){
+    historyList.innerHTML = '';
+    historyData.forEach((history) =>{
+    const liElm = document.createElement('li');
+    liElm.className = 'list-group-item d-flex justify-content-between align-items-center';
+    liElm.innerHTML = `<span class=text-muted small>${new Date(history.date).toLocaleString('ja-JP')}</span><span>BMI:${history.bmi}</span><span>${history.judge}</span>`;
+    historyList.appendChild(liElm);
+    })
+};
+
 // BMIを表示する要素を取得する bmiResult.innerText→bmiResultのinnerText の意
 
 // let bmiResult = document.querySelector('#bmi-result');
@@ -39,13 +54,25 @@ const historyList = document.querySelector('#history-list');
 
 // Webサイト上でユーザーが行う操作：Event
 
-// 計算履歴保存用の配列(空の配列）
-const historyData = [];
+
+
+// 計算履歴保存用の配列(localStorageから読み込む）
+const savedData = localStorage.getItem('bmiHistory');
+// 三項(条件）演算子
+let historyData = savedData ? JSON.parse(savedData):[];
+// もしsavedDataが入っていたら、
+// if(savedData){
+//     historyData = JSON.parse(savedData);
+// }
+console.log(renderHistory);
+// ページを開いた時に履歴を表示
+renderHistory();
+
 calcBtn.addEventListener('click',() => {   
 
 
 // calcBtnがクリックされたときに実行したい処理
-console.log('クリックしました');
+// console.log('クリックしました');
 
 // 5.入力された身長の値を取得(weightInput.value → 入力欄の中にある値)
 const heightValue = heightInput.value;
@@ -71,15 +98,17 @@ if(isNaN(heightValue) || isNaN(weightValue)){
 
 }
 // 身長の単位を変換
-const convertHeightValue = heightValue / 100;
+// const convertHeightValue = heightValue / 100;
 
 
 
 // 7.BMIを計算する(体重[kg] ÷ 身長[m] × 身長[m] ）
 // 四捨五入するにはMath.roundを使う
 
-const bmi = Math.round( weightValue /(convertHeightValue * convertHeightValue)*100)/100;
-console.log(bmi);
+const bmi = calculateBMI(heightValue,weightValue);
+
+// const bmi = Math.round( weightValue /(convertHeightValue * convertHeightValue)*100)/100;
+// console.log(bmi);
 
 // 8.計算結果をbmiResultに表示する
 
@@ -95,24 +124,26 @@ bmiResult.innerText = bmi;
 // document.getElementById（'ID属性の値') ※#は不要
 
 const judgeResult = document.getElementById('judgment-result');
-console.log(judgeResult);
+// console.log(judgeResult);
+const judgeInfo = getJudgement(bmi);
 
-    // 2.BMI値を基に肥満度を判定
+// 2.BMI値を基に肥満度を判定
 
-let judgeResultText = '';
-if( bmi < 18.5){
-    console.log('低体重');
-    judgeResultText = '低体重';
-} else if (bmi < 25){
-    console.log('普通体重');
-    judgeResultText = '普通体重';
-} else {
-    console.log('肥満');
-    judgeResultText = '肥満';
-} 
+// let judgeResultText = '';
+// judgeResultText.innerHTML=judgeResult;
+// if( bmi < 18.5){
+//     console.log('低体重');
+//     judgeResultText = '低体重';
+// } else if (bmi < 25){
+//     console.log('普通体重');
+//     judgeResultText = '普通体重';
+// } else {
+//     console.log('肥満');
+//     judgeResultText = '肥満';
+// } 
 
-    // 3.判定結果を画面に表示
-    judgeResult.innerText = judgeResultText;
+// 3.判定結果を画面に表示
+// judgeResult.innerText = judgeResultText;
 
 
 // 追加機能3:計算履歴の表示
@@ -134,15 +165,20 @@ const sec = String(today.getSeconds()).padStart(2,'0');
 console.log(year,month,date,time,min,sec);
 const newRecord = {
     bmi:bmi,
-    judge:judgeResultText,
+    judge:judgeInfo,
     date:`${year}-${month}-${date}T${time}:${min}:${sec}`,
 }
 
-// 2.履歴の配列にオブジェクトを入れる（addEventListnerの前で作る。ボタンをクリックすると新しいまっさらな欄が用意されるため。）
+// 2.履歴の配列にオブジェクトを入れる（addEventListenerの前で作る。ボタンをクリックすると新しいまっさらな欄が用意されるため。）
 // 履歴は新しいものから表示する→配列の先頭に最新データを入れる
-
+// 2 履歴の配列にオブジェクトを入れる
 historyData.unshift(newRecord);
 console.log(historyData);
+
+// 2-2 historyData配列をbmiHistoryというキーでlocalStorageに保存
+// const jsonString = JSON.stringfy(historyData);
+localStorage.setItem('bmiHistory',JSON.stringify(historyData));
+
 
 // 3.履歴一覧を画面に表示する
 // 履歴一覧を空欄にする（履歴がたまりすぎるのを防止する）
@@ -153,13 +189,14 @@ console.log(historyData);
 // innerHTMLにすると、タグ要素を追加できる。bootstrapの装飾を追加(<span>の赤字）
 // https://getbootstrap.jp/docs/5.3/components/list-group/#%E7%84%A1%E5%8A%B9%E5%8C%96
 
-historyList.innerHTML = '';
-for(let history of historyData){
-    const liElm = document.createElement('li');
-    liElm.className = 'list-group-item d-flex justify-content-between align-items-center';
-    liElm.innerHTML = `<span class=text-muted small>${new Date(history.date).toLocaleString('ja-JP')}</span><span>BMI:${history.bmi}</span><span>${history.judge}</span>`;
-    historyList.appendChild(liElm);
-}
+// historyList.innerHTML = '';
+// for(let history of historyData){
+//     const liElm = document.createElement('li');
+//     liElm.className = 'list-group-item d-flex justify-content-between align-items-center';
+//     liElm.innerHTML = `<span class=text-muted small>${new Date(history.date).toLocaleString('ja-JP')}</span><span>BMI:${history.bmi}</span><span>${history.judge}</span>`;
+    // historyList.appendChild(liElm);
+// }
+renderHistory();
 });
 
 // 2.入力値チェック
